@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="https://telegra.ph/file/3b46329e607912a0cddab.png" alt="Lazy Princess Logo">
+  <img src="https://telegra.ph/file/84d06b09397b89875f763.jpg" alt="ErikaBot ogo">
 </p>
 <h1 align="center">
-  <b> Lazy Princess BOT </b>
+  <b> ERIKA BOT </b>
 </h1>
 
 ## ⚡️Features
