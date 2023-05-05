@@ -10,8 +10,7 @@ from Script import script
 import pyrogram
 from database.connections_mdb import active_connection, all_connections, delete_connection, if_active, make_active, \
     make_inactive
-from info import ADMINS, AUTH_CHANNEL, AUTH_USERS, CUSTOM_FILE_CAPTION, AUTH_GROUPS, P_TTI_SHOW_OFF, IMDB,REQ_CHANNEL, \
-    SINGLE_BUTTON, SPELL_CHECK_REPLY, IMDB_TEMPLATE
+from info import *
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, ForceReply
 from pyrogram import Client, filters, enums
 from pyrogram.errors import FloodWait, UserIsBlocked, MessageNotModified, PeerIdInvalid
@@ -25,18 +24,17 @@ import os
 import humanize
 from PIL import Image
 import time
+from utils import get_shortlink
 from database.filters_mdb import (
     del_all,
     find_filter,
     get_filters,
 )
-req_channel = REQ_CHANNEL
-
 import logging
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
 
+req_channel = REQ_CHANNEL
 BUTTONS = {}
 SPELL_CHECK = {}
 
@@ -147,10 +145,10 @@ async def doc(bot, update):
     if ph_path:
        os.remove(ph_path) 
 
-
-# Born to make history @LazyDeveloper !
+# # Born to make history @LazyDeveloper !
 @Client.on_callback_query(filters.regex(r"^next"))
 async def next_page(bot, query):
+
     ident, req, key, offset = query.data.split("_")
     if int(req) not in [query.from_user.id, 0]:
         return await query.answer("This Message is not for you dear. Don't worry you can send new one !", show_alert=True)
@@ -160,7 +158,7 @@ async def next_page(bot, query):
         offset = 0
     search = BUTTONS.get(key)
     if not search:
-        await query.answer("You are using one of my old messages, please send the request again.", show_alert=True)
+        await query.answer("𝚈𝙾𝚄 𝙰𝚁𝙴 𝚄𝚂𝙸𝙽𝙶 𝙾𝙽𝙴 𝙾𝙵 𝙼𝚈 𝙾𝙻𝙳 𝙼𝙴𝚂𝚂𝙰𝙶𝙴𝚂, 𝙿𝙻𝙴𝙰𝚂𝙴 𝚂𝙴𝙽𝙳 𝚃𝙷𝙴 𝚁𝙴𝚀𝚄𝙴𝚂𝚃 𝙰𝙶𝙰𝙸𝙽.", show_alert=True)
         return
 
     files, n_offset, total = await get_search_results(search, offset=offset, filter=True)
@@ -172,28 +170,104 @@ async def next_page(bot, query):
     if not files:
         return
     settings = await get_settings(query.message.chat.id)
+        # if query.from_user.id in download_counts and download_counts[query.from_user.id]['date'] == current_date:
+        #     if download_counts[query.from_user.id]['count'] >= DOWNLOAD_LIMIT:
+        #         # set URL_MODE to False to disable the URL shortener button
+        #         URL_MODE = False
+        #     else:
+        #         # increment the download count for the user
+        #         download_counts[query.from_user.id]['count'] += 1
+        # else:
+        #     # create a new entry for the user in the download counts dictionary
+        #     download_counts[query.from_user.id] = {'date': current_date, 'count': 1}d
     if settings['button']:
-        btn = [
-            [
-                InlineKeyboardButton(
-                    text=f"[{get_size(file.file_size)}] {file.file_name}", callback_data=f'files#{file.file_id}'
-                ),
-            ]
-            for file in files
-        ]
+            if URL_MODE is True:
+                if query.from_user.id in ADMINS:
+                    btn = [
+                        [
+                            InlineKeyboardButton(
+                                text=f"[{get_size(file.file_size)}] {file.file_name}", callback_data=f'files#{file.file_id}'
+                            ),
+                        ]
+                        for file in files
+                    ]
+                elif query.from_user.id in LZURL_PRIME_USERS:
+                    btn = [
+                        [
+                            InlineKeyboardButton(
+                                text=f"[{get_size(file.file_size)}] {file.file_name}", callback_data=f'files#{file.file_id}'
+                            ),
+                        ]
+                        for file in files
+                        ]
+                else:
+                    btn = [
+                        [
+                            InlineKeyboardButton(
+                                text=f"[{get_size(file.file_size)}] {file.file_name}", 
+                                url=await get_shortlink(f"https://telegram.me/{temp.U_NAME}?start=files_{file.file_id}")
+                            ),
+                        ]
+                        for file in files
+                    ]
+            else:
+                btn = [
+                    [
+                        InlineKeyboardButton(
+                            text=f"[{get_size(file.file_size)}] {file.file_name}", callback_data=f'files#{file.file_id}'
+                        ),
+                    ]
+                    for file in files
+                ]
+
     else:
-        btn = [
-            [
-                InlineKeyboardButton(
-                    text=f"{file.file_name}", callback_data=f'files#{file.file_id}'
-                ),
-                InlineKeyboardButton(
-                    text=f"{get_size(file.file_size)}",
-                    callback_data=f'files_#{file.file_id}',
-                ),
-            ]
-            for file in files
-        ]
+        if URL_MODE is True:
+            if query.from_user.id in ADMINS:
+                btn = [
+                    [
+                        InlineKeyboardButton(text=f"{file.file_name}",callback_data=f'files#{file.file_id}',),
+                        InlineKeyboardButton(text=f"{get_size(file.file_size)}",callback_data=f'files#{file.file_id}',),
+                    ]
+                    for file in files
+                ]
+            elif query.from_user.id in LZURL_PRIME_USERS:
+                btn = [
+                    [
+                        InlineKeyboardButton(text=f"{file.file_name}",callback_data=f'files#{file.file_id}',),
+                        InlineKeyboardButton(text=f"{get_size(file.file_size)}",callback_data=f'files#{file.file_id}',),
+                    ]
+                    for file in files
+                ]
+            else:
+                btn = [
+                    query[
+                        InlineKeyboardButton(text=f"{file.file_name}", url=await get_shortlink(f"https://telegram.me/{temp.U_NAME}?start=files_{file.file_id}")),
+                        InlineKeyboardButton(text=f"[{get_size(file.file_size)}]", url=await get_shortlink(f"https://telegram.me/{temp.U_NAME}?start=files_{file.file_id}")),
+                    ]
+                    for file in files
+                ]
+        else:
+            if query.from_user.id in ADMINS:
+                btn = [
+                    [
+                        InlineKeyboardButton(text=f"{file.file_name}",callback_data=f'files#{file.file_id}',),
+                        InlineKeyboardButton(text=f"{get_size(file.file_size)}",callback_data=f'files#{file.file_id}',),
+                    ]
+                    for file in files
+                ]
+            else:
+                btn = [
+                    [
+                        InlineKeyboardButton(text=f"{file.file_name}",callback_data=f'files#{file.file_id}',),
+                        InlineKeyboardButton(text=f"{get_size(file.file_size)}",callback_data=f'files#{file.file_id}',),
+                    ]
+                    for file in files
+                ]
+    btn.insert(0,
+        [ 
+	    InlineKeyboardButton(text="⚡ʜᴏᴡ ᴛᴏ ᴅᴏᴡɴʟᴏᴀᴅ⚡", url='https://telegram.me/ShadowUpdates12')
+        ] 
+    )
 
     if 0 < offset <= 10:
         off_set = 0
@@ -254,6 +328,7 @@ async def advantage_spoll_choker(bot, query):
 # Born to make history @LazyDeveloper !
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
+    data = query.data
     if query.data == "close_data":
         await query.message.delete()
     elif query.data == "delallconfirm":
@@ -269,20 +344,20 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     title = chat.title
                 except:
                     await query.message.edit_text("Make sure I'm present in your group!!", quote=True)
-                    return await query.answer('♥️ Love @LazyDeveloper ♥️')
+                    return await query.answer('♥️ Love @Sad_Nobita ♥️')
             else:
                 await query.message.edit_text(
                     "I'm not connected to any groups!\nCheck /connections or connect to any groups",
                     quote=True
                 )
-                return await query.answer('♥️ Thank You LazyDeveloper ♥️')
+                return await query.answer('♥️ Thank You SᴀᴅNᴏʙɪᴛᴀ ♥️')
 
         elif chat_type in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
             grp_id = query.message.chat.id
             title = query.message.chat.title
 
         else:
-            return await query.answer('♥️ Thank You LazyDeveloper ♥️')
+            return await query.answer('♥️ Thank You SᴀᴅNᴏʙɪᴛᴀ ♥️')
 
         st = await client.get_chat_member(grp_id, userid)
         if (st.status == enums.ChatMemberStatus.OWNER) or (str(userid) in ADMINS):
@@ -380,7 +455,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 f"Some error occurred!!",
                 parse_mode=enums.ParseMode.MARKDOWN
             )
-        return await query.answer('♥️ Thank You LazyDeveloper ♥️')
+        return await query.answer('♥️ Thank You SadNobita ♥️')
     elif "deletecb" in query.data:
         await query.answer()
 
@@ -398,7 +473,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 f"Some error occurred!!",
                 parse_mode=enums.ParseMode.MARKDOWN
             )
-        return await query.answer('♥️ Thank You LazyDeveloper ♥️')
+        return await query.answer('♥️ Thank You SadNobita ♥️')
     elif query.data == "backcb":
         await query.answer()
 
@@ -409,7 +484,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             await query.message.edit_text(
                 "There are no active connections!! Connect to some groups first.",
             )
-            return await query.answer('♥️ Thank You LazyDeveloper ♥️')
+            return await query.answer('♥️ Thank You SadNobita ♥️')
         buttons = []
         for groupid in groupids:
             try:
@@ -519,12 +594,10 @@ async def cb_handler(client: Client, query: CallbackQuery):
             InlineKeyboardButton('➕↖️ Add Me To Your Groups ↗️➕', url=f'http://t.me/{temp.U_NAME}?startgroup=true')
         ], [
             InlineKeyboardButton('🧞‍♀️ Search 🧐', switch_inline_query_current_chat=''),
-            InlineKeyboardButton('🔔 Updates 🤖', url='https://t.me/LazyDeveloper')
+            InlineKeyboardButton('🔔 Updates 🤖', url='https://t.me/ShadowUpdates12')
         ], [
             InlineKeyboardButton('🙆🏻 Help 🦾', callback_data='help'),
             InlineKeyboardButton('♥️ About ♥️', callback_data='about')
-        ],[
-            InlineKeyboardButton('Watch Tutorial', url='https://youtube.com/LazyDeveloper')
         ]]
         reply_markup = InlineKeyboardMarkup(buttons)
         await query.message.edit_text(
@@ -532,7 +605,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             reply_markup=reply_markup,
             parse_mode=enums.ParseMode.HTML
         )
-        await query.answer('♥️ Thank You LazyDeveloper ♥️')
+        await query.answer('♥️ Thank You SadNobita ♥️')
     elif query.data == "help":
         buttons = [[
             InlineKeyboardButton('Manual Filter', callback_data='manuelfilter'),
@@ -552,7 +625,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
         )
     elif query.data == "about":
         buttons = [[
-            InlineKeyboardButton('🔔 Updates 🤖', url='https://t.me/LazyDeveloper'),
+            InlineKeyboardButton('🔔 Updates 🤖', url='https://t.me/ShadowUpdates12'),
             InlineKeyboardButton('♥️ Source', callback_data='source')
         ], [
             InlineKeyboardButton('🏠 Home', callback_data='start'),
@@ -605,6 +678,130 @@ async def cb_handler(client: Client, query: CallbackQuery):
             reply_markup=reply_markup,
             parse_mode=enums.ParseMode.HTML
         )
+
+    elif data.startswith("notify_user_not_avail"):
+        _, user_id, movie = data.split(":")
+        # Send message to user
+        try:
+            btn = [[
+                InlineKeyboardButton(text=f"🔍 Search Here 🔎", url=f"https://telegram.me/{MOVIE_GROUP_USERNAME}")
+            ],[
+                InlineKeyboardButton(text=f"🐞 REPORT ISSUE 🐞", url=f"https://telegram.me/ShadowSupport12")
+            ]]
+            btn_lzdv = [
+                [
+                InlineKeyboardButton(text=f"🗑 Delete Log ❌", callback_data = "close_data")
+                ]]
+            reply_markup_lzdv = InlineKeyboardMarkup(btn_lzdv)
+            reply_markup = InlineKeyboardMarkup(btn)
+            await client.send_message(int(user_id), f"😒 oops! sona, Your requested content named `{movie}` is not available right now, we are really trying our best to serve you this cotent,can you please provide us some more details related to your query {movie}, \nSend details to Admin : <a href='https://telegram.me/{ADMIN_USRNM}'>**Send here...**</a>\n\n❤ Thank You for the contribution", reply_markup=reply_markup)
+            await query.edit_message_text(text=f"- __**User notified successfully sweetie...✅**__\n\n⏳**Status** : Not Available 😒.\n🪪**UserID** : `{user_id}`\n🎞**Content** : `{movie}`\n\n\n🦋",reply_markup=reply_markup_lzdv)
+        # Delete callback query message
+            await query.answer()
+            await query.delete()
+        except Exception as e:
+            print(e)  # print the error message
+            await query.answer("something went wrong", show_alert=True)
+            return
+        
+    elif data.startswith("notify_user_alrupl"):
+        _, user_id, movie = data.split(":")
+        # Send message to user
+        try:
+            btn = [[
+                InlineKeyboardButton(text=f"🔍 Search Here 🔎", url=f"https://telegram.me/{MOVIE_GROUP_USERNAME}")
+            ],[
+                InlineKeyboardButton(text=f"🐞 REPORT ISSUE 🐞", url=f"https://telegram.me/LazyDeveloperSupport")
+            ],[
+                InlineKeyboardButton(text=f"⚡️ Learn Bot Making 🦋", url=f"https://youtube.com/@LazyDeveloperr")
+            ]]
+            btn_lzdv = [
+                [
+                InlineKeyboardButton(text=f"🗑 Delete Log ❌", callback_data = "close_data")
+                ]]
+            reply_markup_lzdv = InlineKeyboardMarkup(btn_lzdv)            
+            reply_markup = InlineKeyboardMarkup(btn)
+            await client.send_message(int(user_id), f"🛋 Hey sona, Your requested content named `{movie}` is already available in our database! You can easily get this movie by searching it's correct name in our official group...\nSend details to Admin : \n\n❤ Thank You for the contribution", reply_markup=reply_markup)
+            await query.edit_message_text(text=f"- __**User notified successfully sweetie...✅**__\n\n⏳**Status** : Already Uploaded ⚡.\n🪪**UserID** : `{user_id}`\n🎞**Content** : `{movie}`\n\n\n🦋",reply_markup=reply_markup_lzdv)
+        # Delete callback query message
+            await query.answer()
+            await query.delete()
+        except:
+            await query.answer("something went wrong", show_alert = True)
+            return
+        
+    elif data.startswith("notify_userupl"):
+        _, user_id, movie = data.split(":")
+        # Send message to user
+        try:
+            btn = [[
+                InlineKeyboardButton(text=f"🔍 Search Here 🔎", url=f"https://telegram.me/{MOVIE_GROUP_USERNAME}")
+            ],[
+                InlineKeyboardButton(text=f"🐞 REPORT ISSUE 🐞", url=f"https://telegram.me/ShadowSupport12")
+            ]]
+            btn_lzdv = [
+                [
+                InlineKeyboardButton(text=f"🗑 Delete Log ❌", callback_data = "close_data")
+                ]]
+            reply_markup_lzdv = InlineKeyboardMarkup(btn_lzdv) 
+            reply_markup = InlineKeyboardMarkup(btn)
+            await client.send_message(int(user_id), f"✅ Hey sona, Your requested content named `{movie}` is now available in our database! You can easily get this movie by searching it's correct name in our official group...\n\n❤ Thank You for the contribution", reply_markup=reply_markup)
+            await query.edit_message_text(text=f"- __**User notified successfully sweetie...✅**__\n\n⏳**Status** : Upload done ✅.\n🪪**UserID** : `{user_id}`\n🎞**Content** : `{movie}`\n\n\n🦋", reply_markup=reply_markup_lzdv)
+        # Delete callback query message
+            await query.answer()
+            await query.delete()
+        except:
+            await query.answer("something went wrong", show_alert = True)
+            return
+        
+    elif data.startswith("notify_user_req_rejected"):
+        _, user_id, movie = data.split(":")
+        # Send message to user
+        try:
+            btn = [[
+                InlineKeyboardButton(text=f"🔍 Search Here 🔎", url=f"https://telegram.me/{MOVIE_GROUP_USERNAME}")
+            ],[
+                InlineKeyboardButton(text=f"🐞 REPORT ISSUE 🐞", url=f"https://telegram.me/ShadowSupport12")
+            ]]
+            btn_lzdv = [
+                [
+                InlineKeyboardButton(text=f"🗑 Delete Log ❌", callback_data = "close_data")
+                ]]
+            reply_markup_lzdv = InlineKeyboardMarkup(btn_lzdv) 
+            reply_markup = InlineKeyboardMarkup(btn)
+            await client.send_message(int(user_id), f"🙇‍♀️ Sorry Darling! Your requested content named `{movie}` is rejected by our **ADMiN**, we are really very sorry for the inconvenience, we can't process your request at the moment...\n\n❤️‍🩹Keep your search environment friendly, sweetheart!", reply_markup=reply_markup)
+            await query.edit_message_text(text=f"- __**User notified successfully sweetie...✅**__\n\n⏳**Status** : Request Rejected ❌.\n🪪**UserID** : `{user_id}`\n🎞**Content** : `{movie}`\n\n\n🦋",reply_markup=reply_markup_lzdv)
+        # Delete callback query message
+            await query.answer()
+            await query.delete()
+        except:
+            await query.answer("something went wrong", show_alert = True)
+            return
+        
+    elif data.startswith("notify_user_spelling_error"):
+        _, user_id, movie = data.split(":")
+        # Send message to user
+        try:
+            btn = [[
+                InlineKeyboardButton(text=f"🔍 Search Here 🔎", url=f"https://telegram.me/{MOVIE_GROUP_USERNAME}")
+            ],[
+                InlineKeyboardButton(text=f"🐞 REPORT ISSUE 🐞", url=f"https://telegram.me/ShadowSupport12")
+            ]]
+            btn_lzdv = [
+                [
+                InlineKeyboardButton(text=f"🗑 Delete Log ❌", callback_data = "close_data")
+                ]]
+            reply_markup_lzdv = InlineKeyboardMarkup(btn_lzdv) 
+            reply_markup = InlineKeyboardMarkup(btn)
+            await client.send_message(int(user_id), f"🌍 Your spelling matters.\nThe requested content `{movie}` is available in our database, You were unable to get it because of your spelling mistake.🧐 Please make sure you've spelled correctly while searching content in group...\n\n❤Thank u for supporting us.", reply_markup=reply_markup)
+            await query.edit_message_text(text=f"- __**User notified successfully sweetie...✅**__\n\n⏳**Status** : Spelling error 🖊.\n🪪**UserID** : `{user_id}`\n🎞**Content** : `{movie}`\n\n\n🦋",reply_markup=reply_markup_lzdv)
+        # Delete callback query message
+            await query.answer()
+            await query.delete()
+        except:
+            await query.answer("something went wrong", show_alert = True)
+            return
+        
     elif query.data == "coct":
         buttons = [[
             InlineKeyboardButton('🚪 Back', callback_data='help')
@@ -654,45 +851,45 @@ async def cb_handler(client: Client, query: CallbackQuery):
             reply_markup=reply_markup,
             parse_mode=enums.ParseMode.HTML
         )
-    elif query.data == "getlazythumbnail":
+    # elif query.data == "getlazythumbnail":
+    #     buttons = [
+    #         [
+    #         InlineKeyboardButton("D͢o͢n͢a͢t͢e͢ L͢a͢z͢y͢D͢e͢v͢", callback_data="thdonatelazydev"),
+    #         ],
+    #         [ InlineKeyboardButton("<- G̳O̳ ̳B̳A̳C̳K̳  ⨳", callback_data="lazyhome") ]
+    #         ]
+    #     reply_markup = InlineKeyboardMarkup(buttons)
+    #     await query.message.edit_text(
+    #         text=script.LZTHMB_TEXT.format(query.from_user.mention),
+    #         reply_markup=reply_markup,
+    #         parse_mode=enums.ParseMode.HTML
+    #     )
+    # elif query.data == "thdonatelazydev":
+    #     buttons = [
+    #         [ InlineKeyboardButton("<- G̳O̳ ̳B̳A̳C̳K̳  ⨳", callback_data="getlazythumbnail") ]
+    #         ]
+    #     reply_markup = InlineKeyboardMarkup(buttons)
+    #     await query.message.edit_text(
+    #         text=script.DNT_TEXT.format(query.from_user.mention),
+    #         reply_markup=reply_markup,
+    #         parse_mode=enums.ParseMode.HTML
+    #     )
+    # elif query.data == "getlazylink":
+    #     buttons = [
+    #         [
+    #         InlineKeyboardButton("D͢o͢n͢a͢t͢e͢ L͢a͢z͢y͢D͢e͢v͢", callback_data="linkdonatelazydev"),
+    #         ],
+    #         [ InlineKeyboardButton("<- G̳O̳ ̳B̳A̳C̳K̳  ⨳", callback_data="lazyhome") ]
+    #         ]
+    #     reply_markup = InlineKeyboardMarkup(buttons)
+    #     await query.message.edit_text(
+    #         text=script.LZLINK_TEXT.format(query.from_user.mention),
+    #         reply_markup=reply_markup,
+    #         parse_mode=enums.ParseMode.HTML
+    #     )
+    elif query.data == "donatelazydev":
         buttons = [
-            [
-            InlineKeyboardButton("D͢o͢n͢a͢t͢e͢ L͢a͢z͢y͢D͢e͢v͢", callback_data="thdonatelazydev"),
-            ],
-            [ InlineKeyboardButton("<- G̳O̳ ̳B̳A̳C̳K̳  ⨳", callback_data="lazyhome") ]
-            ]
-        reply_markup = InlineKeyboardMarkup(buttons)
-        await query.message.edit_text(
-            text=script.LZTHMB_TEXT.format(query.from_user.mention),
-            reply_markup=reply_markup,
-            parse_mode=enums.ParseMode.HTML
-        )
-    elif query.data == "thdonatelazydev":
-        buttons = [
-            [ InlineKeyboardButton("<- G̳O̳ ̳B̳A̳C̳K̳  ⨳", callback_data="getlazythumbnail") ]
-            ]
-        reply_markup = InlineKeyboardMarkup(buttons)
-        await query.message.edit_text(
-            text=script.DNT_TEXT.format(query.from_user.mention),
-            reply_markup=reply_markup,
-            parse_mode=enums.ParseMode.HTML
-        )
-    elif query.data == "getlazylink":
-        buttons = [
-            [
-            InlineKeyboardButton("D͢o͢n͢a͢t͢e͢ L͢a͢z͢y͢D͢e͢v͢", callback_data="linkdonatelazydev"),
-            ],
-            [ InlineKeyboardButton("<- G̳O̳ ̳B̳A̳C̳K̳  ⨳", callback_data="lazyhome") ]
-            ]
-        reply_markup = InlineKeyboardMarkup(buttons)
-        await query.message.edit_text(
-            text=script.LZLINK_TEXT.format(query.from_user.mention),
-            reply_markup=reply_markup,
-            parse_mode=enums.ParseMode.HTML
-        )
-    elif query.data == "linkdonatelazydev":
-        buttons = [
-            [ InlineKeyboardButton("<- G̳O̳ ̳B̳A̳C̳K̳  ⨳", callback_data="getlazylink") ]
+            [ InlineKeyboardButton("⨳   Close   ⨳", callback_data="close_data") ]
             ]
         reply_markup = InlineKeyboardMarkup(buttons)
         await query.message.edit_text(
@@ -703,8 +900,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
     elif query.data == "lazyhome":
         text = f"""\n⨳ *•.¸♡ L҉ΛＺ𝐲 ＭⓄｄ𝓔 ♡¸.•* ⨳\n\n**Please tell, what should i do with this file.?**\n"""
         buttons = [[ InlineKeyboardButton("📝✧✧ S𝚝ar𝚝 re𝚗aᗰi𝚗g ✧✧📝", callback_data="rename") ],
-                           [ InlineKeyboardButton("📸G͢e͢t͢ T͢h͢u͢m͢b͢n͢a͢i͢l͢ ᶜᵒᵐⁱⁿᵍ ˢᵒᵒⁿ", callback_data="getlazythumbnail") ],
-                           [ InlineKeyboardButton("🔏G͢e͢n͢e͢r͢a͢t͢e͢ L͢i͢n͢k͢ ᶜᵒᵐⁱⁿᵍ ˢᵒᵒⁿ", callback_data="getlazylink") ],
                            [ InlineKeyboardButton("⨳  C L Ф S Ξ  ⨳", callback_data="cancel") ]]
         reply_markup = InlineKeyboardMarkup(buttons)
         await query.message.edit_text(
@@ -721,44 +916,63 @@ async def cb_handler(client: Client, query: CallbackQuery):
             reply_markup=reply_markup,
             parse_mode=enums.ParseMode.HTML
         )
-    elif query.data == "reqauthgetlazythumbnail":
-        buttons = [
-            [
-            InlineKeyboardButton("D͢o͢n͢a͢t͢e͢ L͢a͢z͢y͢D͢e͢v͢", callback_data="thdonatelazydev"),
-            ],
-            [ InlineKeyboardButton("<- G̳O̳ ̳B̳A̳C̳K̳  ⨳", callback_data="reqauthlazyhome") ]
-            ]
-        reply_markup = InlineKeyboardMarkup(buttons)
-        await query.message.edit_text(
-            text=script.LZTHMB_TEXT.format(query.from_user.mention),
-            reply_markup=reply_markup,
-            parse_mode=enums.ParseMode.HTML
-        )
-    elif query.data == "reqauthlazyhome":
-        text = f"""\n⨳ *•.¸♡ L҉ΛＺ𝐲 ＭⓄｄ𝓔 ♡¸.•* ⨳\n\n**Please tell, what should i do with this file.?**\n"""
-        buttons = [[ InlineKeyboardButton("📝✧✧ S𝚝ar𝚝 re𝚗aᗰi𝚗g ✧✧📝", callback_data="requireauth") ],
-                           [ InlineKeyboardButton("📸G͢e͢t͢ T͢h͢u͢m͢b͢n͢a͢i͢l͢ ᶜᵒᵐⁱⁿᵍ ˢᵒᵒⁿ", callback_data="reqauthgetlazythumbnail") ],
-                           [ InlineKeyboardButton("🔏G͢e͢n͢e͢r͢a͢t͢e͢ L͢i͢n͢k͢ ᶜᵒᵐⁱⁿᵍ ˢᵒᵒⁿ", callback_data="reqauthgetlazylink") ],
-                           [ InlineKeyboardButton("⨳  C L Ф S Ξ  ⨳", callback_data="cancel") ]]
-        reply_markup = InlineKeyboardMarkup(buttons)
-        await query.message.edit_text(
-                    text=text,
-                    reply_markup=reply_markup,
-                    parse_mode=enums.ParseMode.HTML
-                )
-    elif query.data == "reqauthgetlazylink":
-        buttons = [
-            [
-            InlineKeyboardButton("D͢o͢n͢a͢t͢e͢ L͢a͢z͢y͢D͢e͢v͢", callback_data="linkdonatelazydev"),
-            ],
-            [ InlineKeyboardButton("<- G̳O̳ ̳B̳A̳C̳K̳  ⨳", callback_data="reqauthlazyhome") ]
-            ]
-        reply_markup = InlineKeyboardMarkup(buttons)
-        await query.message.edit_text(
-            text=script.LZLINK_TEXT.format(query.from_user.mention),
-            reply_markup=reply_markup,
-            parse_mode=enums.ParseMode.HTML
-        )
+    # elif query.data == "reqauthgetlazythumbnail":
+    #     buttons = [
+    #         [
+    #         InlineKeyboardButton("D͢o͢n͢a͢t͢e͢ L͢a͢z͢y͢D͢e͢v͢", callback_data="thdonatelazydev"),
+    #         ],
+    #         [ InlineKeyboardButton("<- G̳O̳ ̳B̳A̳C̳K̳  ⨳", callback_data="reqauthlazyhome") ]
+    #         ]
+    #     reply_markup = InlineKeyboardMarkup(buttons)
+    #     await query.message.edit_text(
+    #         text=script.LZTHMB_TEXT.format(query.from_user.mention),
+    #         reply_markup=reply_markup,
+    #         parse_mode=enums.ParseMode.HTML
+    #     )
+    # elif query.data == "reqauthlazyhome":
+    #     text = f"""\n⨳ *•.¸♡ L҉ΛＺ𝐲 ＭⓄｄ𝓔 ♡¸.•* ⨳\n\n**Please tell, what should i do with this file.?**\n"""
+    #     buttons = [[ InlineKeyboardButton("📝✧✧ S𝚝ar𝚝 re𝚗aᗰi𝚗g ✧✧📝", callback_data="requireauth") ],
+    #                        [ InlineKeyboardButton("⨳  C L Ф S Ξ  ⨳", callback_data="cancel") ]]
+    #     reply_markup = InlineKeyboardMarkup(buttons)
+    #     await query.message.edit_text(
+    #                 text=text,
+    #                 reply_markup=reply_markup,
+    #                 parse_mode=enums.ParseMode.HTML
+    #             )
+    # elif query.data == "reqauthgetlazylink":
+    #     buttons = [
+    #         [
+    #         InlineKeyboardButton("D͢o͢n͢a͢t͢e͢ L͢a͢z͢y͢D͢e͢v͢", callback_data="linkdonatelazydev"),
+    #         ],
+    #         [ InlineKeyboardButton("<- G̳O̳ ̳B̳A̳C̳K̳  ⨳", callback_data="reqauthlazyhome") ]
+    #         ]
+    #     reply_markup = InlineKeyboardMarkup(buttons)
+    #     await query.message.edit_text(
+    #         text=script.LZLINK_TEXT.format(query.from_user.mention),
+    #         reply_markup=reply_markup,
+    #         parse_mode=enums.ParseMode.HTML
+    #     )
+    elif query.data == "exit":
+        await query.answer("Sorry Darling! You can't make any changes...\n\nOnly my Admin can change this setting...", show_alert = True)
+        return
+    elif query.data == "invalid_index_process":
+        await query.answer("Hey sweetie, please send me the last media with quote from your group.\nAnd also make sure that i am admin in your beloved group...")
+        return
+    # elif query.data == "already_uploaded":
+    #     if query.from_user.id not in ADMINS:
+    #         await query.answer("Sorry Darling! You can't make any changes...\n\nOnly my Admin can change this setting...", show_alert = True)
+    #         return
+    #     else:
+    #         message = message.text
+    #         chat_id = message.chat_id
+    #         extracted_line = re.search(pattern, message, re.MULTILINE)
+    #         if extracted_line:
+    #           # Send the extracted line to the other group chat
+    #             buttons = [
+    #             [ InlineKeyboardButton("⨳ ok ⨳", callback_data="cancel") ]
+    #             ]
+    #             reply_markup = InlineKeyboardMarkup(buttons)
+    #             await client.send_message(MOVIE_GROUP_ID, text=extracted_line.group(1))
     elif query.data == "cancel":
         try:
             await query.message.delete()
@@ -789,7 +1003,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
         if str(grp_id) != str(grpid):
             await query.message.edit("Your Active Connection Has Been Changed. Go To /settings.")
-            return await query.answer('♥️ Thank You LazyDeveloper ♥️')
+            return await query.answer('♥️ Thank You SadNobita ♥️')
 
         if status == "True":
             await save_group_settings(grpid, set_type, False)
@@ -799,7 +1013,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
         settings = await get_settings(grpid)
 
         if settings is not None:
-            buttons = [
+            if query.from_user.id in ADMINS:
+                buttons = [
                 [
                     InlineKeyboardButton('Filter Button',
                                          callback_data=f'setgs#button#{settings["button"]}#{str(grp_id)}'),
@@ -834,10 +1049,45 @@ async def cb_handler(client: Client, query: CallbackQuery):
                                          callback_data=f'setgs#welcome#{settings["welcome"]}#{str(grp_id)}')
                 ]
             ]
+            else:
+                buttons = [
+                [
+                    InlineKeyboardButton('Filter Button',
+                                         callback_data=f'setgs#button#{settings["button"]}#{str(grp_id)}'),
+                    InlineKeyboardButton('Single' if settings["button"] else 'Double',
+                                         callback_data=f'setgs#button#{settings["button"]}#{str(grp_id)}')
+                ],
+                [
+                    InlineKeyboardButton('Bot PM', callback_data=f'setgs#botpm#{settings["botpm"]}#{str(grp_id)}'),
+                    InlineKeyboardButton('✅ Yes' if settings["botpm"] else '❌ No',
+                                         callback_data=f'setgs#botpm#{settings["botpm"]}#{str(grp_id)}')
+                ],
+                [
+                    InlineKeyboardButton('File Secure',
+                                         callback_data=f'exit'),
+                    InlineKeyboardButton('✅ Yes' if settings["file_secure"] else '❌ No',
+                                         callback_data=f'exit')
+                ],
+                [
+                    InlineKeyboardButton('IMDB', callback_data=f'setgs#imdb#{settings["imdb"]}#{str(grp_id)}'),
+                    InlineKeyboardButton('✅ Yes' if settings["imdb"] else '❌ No',
+                                         callback_data=f'setgs#imdb#{settings["imdb"]}#{str(grp_id)}')
+                ],
+                [
+                    InlineKeyboardButton('Spell Check',
+                                         callback_data=f'setgs#spell_check#{settings["spell_check"]}#{str(grp_id)}'),
+                    InlineKeyboardButton('✅ Yes' if settings["spell_check"] else '❌ No',
+                                         callback_data=f'setgs#spell_check#{settings["spell_check"]}#{str(grp_id)}')
+                ],
+                [
+                    InlineKeyboardButton('Welcome', callback_data=f'setgs#welcome#{settings["welcome"]}#{str(grp_id)}'),
+                    InlineKeyboardButton('✅ Yes' if settings["welcome"] else '❌ No',
+                                         callback_data=f'setgs#welcome#{settings["welcome"]}#{str(grp_id)}')
+                ]
+            ]
             reply_markup = InlineKeyboardMarkup(buttons)
             await query.message.edit_reply_markup(reply_markup)
     await query.answer('♥️ Thank You LazyDeveloper ♥️')
-
 
 async def auto_filter(client, msg, spoll=False):
     if not spoll:
@@ -848,13 +1098,20 @@ async def auto_filter(client, msg, spoll=False):
             return
         if 2 < len(message.text) < 100:
             search = message.text
+            requested_movie = search.strip()
+            user_id = message.from_user.id
             files, offset, total_results = await get_search_results(search.lower(), offset=0, filter=True)
             if not files:
-                await client.send_message(req_channel,f"-🦋 #REQUESTED_CONTENT 🦋-\n\n📝**Content Name** :`{search}`\n**Requested By**: {message.from_user.first_name}\n **USER ID**:{message.from_user.id}\n\n🗃️",
-                                                                                                       reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔺 Mark as Done 🔺", callback_data="close_data")]]))
-                l = await message.reply_text(text=f"△ 𝙷𝚎𝚢 𝚜𝚘𝚗𝚊 `{message.from_user.first_name}` 😎,\n\nʏᴏᴜʀ ʀᴇQᴜᴇꜱᴛ ʜᴀꜱ ʙᴇᴇɴ ꜱᴇɴᴛ ᴛᴏ ᴏᴜʀ **ᴀᴅᴍɪɴ'ꜱ ᴅᴀꜱʜʙᴏᴀʀᴅ** !\nᴘʟᴇᴀꜱᴇ ᴋᴇᴇᴘ ꜱᴏᴍᴇ ᴘᴀᴛɪᴇɴᴄᴇ !\nᴛʜᴇʏ ᴡɪʟʟ ᴜᴘʟᴏᴀᴅ ɪᴛ ᴀꜱ ꜱᴏᴏɴ ᴀꜱ ᴘᴏꜱꜱɪʙʟᴇ.\n\n➟ 📝𝘾𝙤𝙣𝙩𝙚𝙣𝙩 𝙣𝙖𝙢𝙚 : `{search}`\n➟ 👮𝙍𝙚𝙦𝙪𝙚𝙨𝙩𝙚𝙙 𝘽𝙮 : `{message.from_user.first_name}`\n\n༺ @real_MoviesAdda2 ༻\n\n🦋・‥☆𝘼𝘿𝙈𝙞𝙉 𝙨𝙪𝙥𝙥𝙤𝙧𝙩☆‥・🦋\n╰┈➤・☆ @aAdil_h\n╰┈➤・☆ @LazyDeveloperr",
-                                                                                                       reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("━ • │▌║  ᗩᗪᗪ ʍɛ 2 ᑌᖇ Ǥᖇᗝᑌᑭ  ║▌│ • ━", url=f'http://t.me/{temp.U_NAME}?startgroup=true')],[InlineKeyboardButton("✪ Dev Ch- ✪", url="https://t.me/LazyDeveloper"), InlineKeyboardButton("✪ ＹＴ ✪", url="https://youtube.com/@LazyDeveloperr"), InlineKeyboardButton("✪ Main Ch- ✪", url="https://t.me/real_MoviesAdda2")],[InlineKeyboardButton("╚»♥️Thank u MoviesAdda™♥️«╝", callback_data="close_data")]]))
-                await asyncio.sleep(60)
+                await client.send_message(req_channel,f"-🦋 #REQUESTED_CONTENT 🦋-\n\n📝**Content Name** :`{search}`\n**Requested By**: {message.from_user.first_name}\n **USER ID**:{user_id}\n\n🗃️",
+                                                                                                       reply_markup=InlineKeyboardMarkup([
+                                                                                                                                        [InlineKeyboardButton(text=f"✅Upload Done", callback_data=f"notify_userupl:{user_id}:{requested_movie}")],
+                                                                                                                                        [InlineKeyboardButton(text=f"⚡Already Upl..", callback_data=f"notify_user_alrupl:{user_id}:{requested_movie}"),InlineKeyboardButton("🖊Spell Error", callback_data=f"notify_user_spelling_error:{user_id}:{requested_movie}")],
+                                                                                                                                        [InlineKeyboardButton(text=f"😒Not Available", callback_data=f"notify_user_not_avail:{user_id}:{requested_movie}"),InlineKeyboardButton("❌Reject Req", callback_data=f"notify_user_req_rejected:{user_id}:{requested_movie}")],
+                                                                                                                                        ]))
+                
+                l = await message.reply_text(text=f"△ 𝙷𝚎𝚢 𝚜𝚘𝚗𝚊 `{message.from_user.first_name}` 😎,\n\nʏᴏᴜʀ ʀᴇQᴜᴇꜱᴛ ʜᴀꜱ ʙᴇᴇɴ ꜱᴇɴᴛ ᴛᴏ ᴏᴜʀ **ᴀᴅᴍɪɴ'ꜱ ᴅᴀꜱʜʙᴏᴀʀᴅ** !\nᴘʟᴇᴀꜱᴇ ᴋᴇᴇᴘ ꜱᴏᴍᴇ ᴘᴀᴛɪᴇɴᴄᴇ !\nᴛʜᴇʏ ᴡɪʟʟ ᴜᴘʟᴏᴀᴅ ɪᴛ ᴀꜱ ꜱᴏᴏɴ ᴀꜱ ᴘᴏꜱꜱɪʙʟᴇ.\n\n➟ 📝𝘾𝙤𝙣𝙩𝙚𝙣𝙩 𝙣𝙖𝙢𝙚 : `{search}`\n➟ 👮𝙍𝙚𝙦𝙪𝙚𝙨𝙩𝙚𝙙 𝘽𝙮 : `{message.from_user.first_name}`\n\n༺ @{MAIN_CHANNEL_USRNM} ༻\n\n🦋・‥☆𝘼𝘿𝙈𝙞𝙉 𝙨𝙪𝙥𝙥𝙤𝙧𝙩☆‥・🦋\n╰┈➤・☆ @{ADMIN_USRNM}\n╰┈➤・☆ @LazyDeveloperr",
+                                                                                                       reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("━ • │▌║  ᗩᗪᗪ ʍɛ 2 ᑌᖇ Ǥᖇᗝᑌᑭ  ║▌│ • ━", url=f'http://t.me/{temp.U_NAME}?startgroup=true')],[InlineKeyboardButton("✪ Dev Ch- ✪", url=f"https://t.me/{DEV_CHANNEL_USRNM}"), InlineKeyboardButton("✪ ＹＴ ✪", url=f"https://youtube.com/@{LAZY_YT_HANDLE}"), InlineKeyboardButton("✪ Main Ch- ✪", url=f"https://t.me/{MAIN_CHANNEL_USRNM}")],[InlineKeyboardButton("╚»♥️ Thank You ♥️«╝", callback_data="close_data")]]))
+                await asyncio.sleep(20)
                 await l.delete()    
                 if settings["spell_check"]:
                     return await advantage_spell_chok(msg)
@@ -868,29 +1125,94 @@ async def auto_filter(client, msg, spoll=False):
         search, files, offset, total_results = spoll
     pre = 'filep' if settings['file_secure'] else 'file'
     if settings["button"]:
-        btn = [
-            [
-                InlineKeyboardButton(
-                    text=f"[{get_size(file.file_size)}] {file.file_name}", callback_data=f'{pre}#{file.file_id}'
-                ),
-            ]
-            for file in files
-        ]
-    else:
-        btn = [
-            [
-                InlineKeyboardButton(
-                    text=f"{file.file_name}",
-                    callback_data=f'{pre}#{file.file_id}',
-                ),
-                InlineKeyboardButton(
-                    text=f"{get_size(file.file_size)}",
-                    callback_data=f'{pre}#{file.file_id}',
-                ),
-            ]
-            for file in files
-        ]
+            if URL_MODE is True:
+                if message.from_user.id in ADMINS:
+                    btn = [
+                        [
+                            InlineKeyboardButton(
+                                text=f"[{get_size(file.file_size)}] {file.file_name}", callback_data=f'files#{file.file_id}'
+                            ),
+                        ]
+                        for file in files
+                    ]
+                elif message.from_user.id in LZURL_PRIME_USERS:
+                    btn = [
+                        [
+                            InlineKeyboardButton(
+                                text=f"[{get_size(file.file_size)}] {file.file_name}", callback_data=f'{pre}#{file.file_id}'
+                            ),
+                        ]
+                        for file in files
+                        ]
+                else:
+                    btn = [
+                        [
+                            InlineKeyboardButton(
+                                text=f"[{get_size(file.file_size)}] {file.file_name}", 
+                                url=await get_shortlink(f"https://telegram.dog/{temp.U_NAME}?start=files_{file.file_id}")
+                            ),
+                        ]
+                        for file in files
+                    ]
+            else    :
+                btn = [
+                    [
+                        InlineKeyboardButton(
+                            text=f"[{get_size(file.file_size)}] {file.file_name}", callback_data=f'{pre}#{file.file_id}'
+                        ),
+                    ]
+                    for file in files
+                ]
 
+    else:
+        if URL_MODE is True:
+            if message.from_user.id in ADMINS:
+                btn = [
+                    [
+                        InlineKeyboardButton(text=f"{file.file_name}",callback_data=f'files#{file.file_id}',),
+                        InlineKeyboardButton(text=f"{get_size(file.file_size)}",callback_data=f'files#{file.file_id}',),
+                    ]
+                    for file in files
+                ]
+            elif message.from_user.id in LZURL_PRIME_USERS:
+                btn = [
+                    [
+                        InlineKeyboardButton(text=f"{file.file_name}",callback_data=f'{pre}#{file.file_id}',),
+                        InlineKeyboardButton(text=f"{get_size(file.file_size)}",callback_data=f'{pre}#{file.file_id}',),
+                    ]
+                    for file in files
+                ]
+            else:
+                btn = [
+                    [
+                        InlineKeyboardButton(text=f"{file.file_name}", url=await get_shortlink(f"https://telegram.dog/{temp.U_NAME}?start=files_{file.file_id}")),
+                        InlineKeyboardButton(text=f"[{get_size(file.file_size)}]", url=await get_shortlink(f"https://telegram.dog/{temp.U_NAME}?start=files_{file.file_id}")),
+                    ]
+                    for file in files
+                ]
+        else:
+            if message.from_user.id in ADMINS:
+                btn = [
+                    [
+                        InlineKeyboardButton(text=f"{file.file_name}",callback_data=f'files#{file.file_id}',),
+                        InlineKeyboardButton(text=f"{get_size(file.file_size)}",callback_data=f'files#{file.file_id}',),
+                    ]
+                    for file in files
+                ]
+            else:
+                btn = [
+                    [
+                        InlineKeyboardButton(text=f"{file.file_name}",callback_data=f'{pre}#{file.file_id}',),
+                        InlineKeyboardButton(text=f"{get_size(file.file_size)}",callback_data=f'{pre}#{file.file_id}',),
+                    ]
+                    for file in files
+                ]
+
+    btn.insert(0,
+        [ 
+	    InlineKeyboardButton(text="⚡ʜᴏᴡ 2 ᴅᴏᴡɴʟᴏᴀᴅ⚡", url='https://telegram.me/ShadowUpdates12'),
+        ] 
+    )
     if offset != "":
         key = f"{message.chat.id}-{message.id}"
         BUTTONS[key] = search
@@ -943,23 +1265,28 @@ async def auto_filter(client, msg, spoll=False):
         try:
             z = await message.reply_photo(photo=imdb.get('poster'), caption=cap[:1024],
                                       reply_markup=InlineKeyboardMarkup(btn))
-            await asyncio.sleep(250)
-            await z.delete()
+            if SELF_DELETE is True:
+                await asyncio.sleep(SELF_DELETE_SECONDS)
+                await z.delete()
         except (MediaEmpty, PhotoInvalidDimensions, WebpageMediaEmpty):
             pic = imdb.get('poster')
             poster = pic.replace('.jpg', "._V1_UX360.jpg")
             m = await message.reply_photo(photo=poster, caption=cap[:1024], reply_markup=InlineKeyboardMarkup(btn))
-            await asyncio.sleep(250)
-            await m.delete()
+            if SELF_DELETE is True:
+                await asyncio.sleep(SELF_DELETE_SECONDS)
+                await m.delete()
+            
         except Exception as e:
             logger.exception(e)
             n = await message.reply_text(cap, reply_markup=InlineKeyboardMarkup(btn))
-            await asyncio.sleep(250)
-            await n.delete()
+            if SELF_DELETE is True:
+                await asyncio.sleep(SELF_DELETE_SECONDS)
+                await n.delete()         
     else:
         p = await message.reply_text(cap, reply_markup=InlineKeyboardMarkup(btn))
-        await asyncio.sleep(250)
-        await p.delete()
+        if SELF_DELETE is True:
+            await asyncio.sleep(SELF_DELETE_SECONDS)
+            await p.delete()
     if spoll:
         await msg.message.delete()
 
